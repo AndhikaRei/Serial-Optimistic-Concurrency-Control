@@ -1,5 +1,7 @@
+# Import dependency.
 from typing import Callable, List 
 
+# Import own module.
 from database import Database, OCCDatabase
 
 class Transaction:
@@ -45,6 +47,20 @@ class Transaction:
         self.txn(self.local_db)
 
 # Example function to be executed in the transaction.
+def fillData(ks: List[str]) -> Callable[[OCCDatabase], None]:
+    """
+    Fill data in database with dummy value 0.
+
+    Parameters:
+    -----------
+    ks: List[str]
+        the list of keys to be written
+    """
+    def txn(db: OCCDatabase) -> None:
+        for k in ks:
+            db.write(k, 0)
+    return txn
+
 def read(ks: List[str]) -> Callable[[OCCDatabase], None]:
     """
     Read all data in database.
@@ -90,6 +106,7 @@ def write(ks: List[str]) -> Callable[[OCCDatabase], None]:
             db.write(k, new_val)
     return txn
 
+fill_txn = fillData
 read_txn = read
 write_txn = write
 blind_write_txn = blindWrite
