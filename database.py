@@ -7,7 +7,7 @@ class Database:
 
     Attributes:
     ------------
-    database: Dict[str, any]
+    database: Dict[str, int]
         a dictionary that map a string to any value
     """
 
@@ -15,7 +15,7 @@ class Database:
         """
         Constructor of the database. Fill the database with empty dictionary.
         """
-        self.database:Dict[str, any] = {}
+        self.database:Dict[str, int] = {}
         
     def read(self, key:str) -> Any:
         """
@@ -53,7 +53,7 @@ class OCCDatabase:
     Attributes:
     database : Database
         The local database
-    write_dict : Dict[str, any]
+    write_dict : Dict[str, int]
         It is used to keep track of the changes that are made in the local database.
     read_set : Set[str]
     """
@@ -68,7 +68,7 @@ class OCCDatabase:
             the local database
         """
         self.database:Database = db
-        self.write_dict:Dict[str, any] = {}
+        self.write_dict:Dict[str, int] = {}
         self.read_set:Set[str] = set()
 
     def read(self, key:str) -> Any:
