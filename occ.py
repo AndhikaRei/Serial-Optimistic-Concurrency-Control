@@ -16,6 +16,8 @@ class TransactionExecutor:
 
         Parameters:
         -----------
+        db: SerialDatabase
+            the local database
         transaction: Transaction
             The transaction to be executed.
         """
@@ -31,7 +33,7 @@ class TransactionExecutor:
     
     def validationAndWritingPhase(self) -> bool:
         """
-        
+        Execute the validation and writing phase of OCC transaction.
         """
         last_commit_timestamp = self.db.last_commit_timestamp
         # Check for all the transactions that are commited after the current transaction start.
@@ -44,6 +46,9 @@ class TransactionExecutor:
                 write_set = cached_db.write_set
                 read_set = self.transaction.local_db.read_set
                 if not write_set.isdisjoint(read_set):
+                    print("Conflict detected write set: ", write_set," read set: ", read_set, 
+                        "at timestamp ", timestamp, "between transaction no-",self.db.transactions[timestamp].number ,
+                        " and transaction no-",  self.transaction.number )
                     return False
         # If not conflict then commit the transaction and add to transaction manager.
         self.writingPhase()
@@ -95,6 +100,14 @@ class SerialDatabase(Database):
         
     
     def begin(self, transaction: Transaction) -> TransactionExecutor:
+        """
+        Begin a transaction.
+        
+        Parameters:
+        -----------
+        transaction: Transaction
+            The transaction to be executed.
+        """
         return TransactionExecutor(self, transaction)
 
 def main():
@@ -119,9 +132,36 @@ def main():
     t2.readingPhase()
     assert(t1.validationAndWritingPhase())
     assert(occ.last_commit_timestamp == 2)
-    print(occ.transactions)
     assert(t2.validationAndWritingPhase())
     assert(occ.last_commit_timestamp == 3)
+
+    # Write data using two concurrent transactions.
+    # Must be conflict.
+    t3_txn = write_txn(['a','b','c'])
+    t4_txn = write_txn(['a','b','c'])
+    t3 = occ.begin(Transaction(occ, t3_txn, 3, 3))
+    t4 = occ.begin(Transaction(occ, t4_txn, 4, 3))
+    t3.readingPhase()
+    t4.readingPhase()
+    assert(t3.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 4)
+    assert(not t4.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 4)
+
+    # Disjoin write set of two concurrent transactions.
+    # Must be not conflict.
+    t5_txn = write_txn(['a','b'])
+    t6_txn = write_txn(['c'])
+    t5 = occ.begin(Transaction(occ, t5_txn, 5, 4))
+    t6 = occ.begin(Transaction(occ, t6_txn, 6, 4))
+    t5.readingPhase()
+    t6.readingPhase()
+    assert(t5.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 5)
+    assert(t6.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 6)
+
+    # Dst
 
 if __name__ == "__main__":
     main()

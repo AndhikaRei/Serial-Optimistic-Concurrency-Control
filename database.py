@@ -105,8 +105,6 @@ class OCCDatabase:
         """
         for key in self.write_dict:
             self.database.write(key, self.write_dict[key])
-        self.write_dict = {}
-        self.read_set = set()
     
     @property
     def write_set(self) -> Set[str]:
