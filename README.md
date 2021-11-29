@@ -10,7 +10,7 @@ Here is a breakdown of the phases:
 
 ## Getting Started
 
-### Requiremen
+### Requirement
 
 - Python 3
 
