@@ -52,6 +52,7 @@ class TransactionExecutor:
                     return False
         # If not conflict then commit the transaction and add to transaction manager.
         self.writingPhase()
+        print("No conflict detected. Transaction", self.transaction.number,"commited.")
         return True
     
     def writingPhase(self) -> None:
@@ -98,7 +99,6 @@ class SerialDatabase(Database):
         self.transactions[self.last_commit_timestamp] = transaction
         transaction.local_db.commit()
         
-    
     def begin(self, transaction: Transaction) -> TransactionExecutor:
         """
         Begin a transaction.
@@ -161,7 +161,57 @@ def main():
     assert(t6.validationAndWritingPhase())
     assert(occ.last_commit_timestamp == 6)
 
-    # Dst
+    # Write data using two concurrent transactions.
+    # Must be conflict.
+    t7_txn = write_txn(['a','b', 'c'])
+    t8_txn = write_txn(['a'])
+    t7 = occ.begin(Transaction(occ, t7_txn, 7, 6))
+    t8 = occ.begin(Transaction(occ, t8_txn, 8, 6))
+    t7.readingPhase()
+    t8.readingPhase()
+    assert(t7.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 7)
+    assert(not t8.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 7)
+
+    # Write and read data using two concurrent transactions.
+    # Must be conflict.
+    t9_txn = write_txn(['a','b', 'c'])
+    t10_txn = read_txn(['a'])
+    t9 = occ.begin(Transaction(occ, t9_txn, 9, 7))
+    t10 = occ.begin(Transaction(occ, t10_txn, 10, 7))
+    t9.readingPhase()
+    t10.readingPhase()
+    assert(t9.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 8)
+    assert(not t10.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 8)
+
+    # Read and write data using two concurrent transactions.
+    # Must be not conflict.
+    t11_txn = read_txn(['a','b', 'c'])
+    t12_txn = write_txn(['a','b', 'c'])
+    t11 = occ.begin(Transaction(occ, t11_txn, 11, 8))
+    t12 = occ.begin(Transaction(occ, t12_txn, 12, 8))
+    t11.readingPhase()
+    t12.readingPhase()
+    assert(t11.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 9)
+    assert(t12.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 10)
+
+    # Disjoint write and read data using two concurrent transactions.
+    # Must be not conflict.
+    t13_txn = write_txn(['a'])
+    t14_txn = read_txn(['b'])
+    t13 = occ.begin(Transaction(occ, t13_txn, 13, 10))
+    t14 = occ.begin(Transaction(occ, t14_txn, 14, 10))
+    t13.readingPhase()
+    t14.readingPhase()
+    assert(t13.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 11)
+    assert(t14.validationAndWritingPhase())
+    assert(occ.last_commit_timestamp == 12)
 
 if __name__ == "__main__":
     main()
